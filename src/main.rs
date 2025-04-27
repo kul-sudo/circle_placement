@@ -1,6 +1,3 @@
-//! Illustrates different lights of various types and colors, some static, some moving over
-//! a simple scene.
-
 use bevy::{
     color::palettes::css::*,
     pbr::CascadeShadowConfigBuilder,
@@ -54,9 +51,6 @@ impl Default for CameraSettings {
 #[derive(Resource, Default, Deref, DerefMut)]
 struct Parameters(PhysicalCameraParameters);
 
-#[derive(Component)]
-struct Movable;
-
 /// set up a simple 3D scene
 fn setup(
     parameters: Res<Parameters>,
@@ -73,7 +67,27 @@ fn setup(
             ..default()
         })),
         Transform::from_xyz(0.1, 0.1, 1.5),
-        Movable,
+    ));
+    
+    // sphere
+    commands.spawn((
+        Mesh3d(meshes.add(Sphere::new(0.5).mesh().uv(32, 18))),
+        MeshMaterial3d(materials.add(StandardMaterial {
+            base_color: LIMEGREEN.into(),
+            ..default()
+        })),
+        Transform::from_xyz(-5.0, 0.1, 1.0),
+    ));
+
+    // cube
+    commands.spawn((
+        Mesh3d(meshes.add(Cuboid::new(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE))),
+        MeshMaterial3d(materials.add(Color::srgb_u8(124, 144, 255))),
+        Transform::from_xyz(0.0, 0.0, 0.0),
+        Wireframe,
+        // This lets you configure the wireframe color of this entity.
+        // If not set, this will use the color in `WireframeConfig`
+        WireframeColor { color: LIME.into() },
     ));
 
     // cube
@@ -89,13 +103,12 @@ fn setup(
 
     // sphere
     commands.spawn((
-        Mesh3d(meshes.add(Sphere::new(0.5).mesh().uv(32, 18))),
+        Mesh3d(meshes.add(Sphere::new(0.1).mesh().uv(32, 18))),
         MeshMaterial3d(materials.add(StandardMaterial {
             base_color: LIMEGREEN.into(),
             ..default()
         })),
         Transform::from_xyz(1.5, 1.0, 1.5),
-        Movable,
     ));
 
     // directional 'sun' light
@@ -118,7 +131,13 @@ fn setup(
         Camera3d::default(),
         Transform::from_xyz(0.0, 4.0, 5.0).looking_at(Vec3::ZERO, Vec3::ZERO),
         Exposure::from_physical_camera(**parameters),
-        Movable,
+        DistanceFog {
+            color: Color::srgb(0.25, 0.25, 0.25),
+            falloff: FogFalloff::ExponentialSquared {
+                density: 0.12,
+            },
+            ..default()
+        },
     ));
 }
 
@@ -136,28 +155,8 @@ fn orbit(
     mut camera_settings: ResMut<CameraSettings>,
     time: Res<Time>,
 ) {
-    // let delta = vec2(0.1, 0.0);
-    //
-    // let delta_pitch = delta.y * camera_settings.pitch_speed;
-    // let delta_yaw = delta.x * camera_settings.yaw_speed;
-    //
-    // // Obtain the existing pitch, yaw, and roll values from the transform.
-    // let (yaw, pitch, roll) = camera.rotation.to_euler(EulerRot::YXZ);
-    //
-    // // Establish the new yaw and pitch, preventing the pitch value from exceeding our limits.
-    // let pitch = (pitch + delta_pitch).clamp(
-    //     camera_settings.pitch_range.start,
-    //     camera_settings.pitch_range.end,
-    // );
-    // let yaw = yaw + delta_yaw;
-    // camera.rotation = Quat::from_euler(EulerRot::YXZ, yaw, pitch, 0.0);
-    //
-    // // Adjust the translation to maintain the correct orientation toward the orbit target.
-    // // In our example it's a static target, but this could easily be customized.
-    // let target = Vec3::ZERO;
     camera_settings.alpha += ALPHA_DELTA;
     camera.translation.x = ORBIT_RADIUS * camera_settings.alpha.cos();
     camera.translation.z = ORBIT_RADIUS * camera_settings.alpha.sin();
-    camera.look_at(Vec3::ZERO, Vec3::ZERO);
-    // camera.translation = target - camera.forward() * camera_settings.orbit_distance;
+    camera.look_at(Vec3::ZERO, Vec3::Y);
 }
