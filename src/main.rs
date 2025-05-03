@@ -1,21 +1,9 @@
 use bevy::{
     color::palettes::css::*,
-    pbr::CascadeShadowConfigBuilder,
+    pbr::{CascadeShadowConfigBuilder, wireframe::{Wireframe, WireframeColor}},
     prelude::*,
-    render::camera::{Exposure, PhysicalCameraParameters},
-    color::palettes::css::*,
-    pbr::wireframe::{NoWireframe, Wireframe, WireframeColor, WireframeConfig, WireframePlugin},
-    prelude::*,
-    render::{
-        render_resource::WgpuFeatures,
-        settings::{RenderCreation, WgpuSettings},
-        RenderPlugin,
-    },
 };
-use bevy::{input::mouse::AccumulatedMouseMotion, prelude::*};
-use std::f32::consts::FRAC_PI_3;
 use std::f32::consts::PI;
-use std::ops::Range;
 
 const ORBIT_RADIUS: f32 = 10.0;
 const ALPHA_DELTA: f32 = 0.001;
@@ -26,12 +14,6 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .insert_resource::<CameraSettings>(CameraSettings::default())
-        .insert_resource(Parameters(PhysicalCameraParameters {
-            aperture_f_stops: 1.0,
-            shutter_speed_s: 1.0 / 125.0,
-            sensitivity_iso: 100.0,
-            sensor_height: 0.01866,
-        }))
         .add_systems(Startup, setup)
         .add_systems(Update, (animate_light_direction, orbit))
         .run();
@@ -48,16 +30,11 @@ impl Default for CameraSettings {
     }
 }
 
-#[derive(Resource, Default, Deref, DerefMut)]
-struct Parameters(PhysicalCameraParameters);
-
 /// set up a simple 3D scene
 fn setup(
-    parameters: Res<Parameters>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    asset_server: Res<AssetServer>,
 ) {
     // sphere
     commands.spawn((
@@ -68,7 +45,7 @@ fn setup(
         })),
         Transform::from_xyz(0.1, 0.1, 1.5),
     ));
-    
+
     // sphere
     commands.spawn((
         Mesh3d(meshes.add(Sphere::new(0.5).mesh().uv(32, 18))),
@@ -130,12 +107,9 @@ fn setup(
     commands.spawn((
         Camera3d::default(),
         Transform::from_xyz(0.0, 4.0, 5.0).looking_at(Vec3::ZERO, Vec3::ZERO),
-        Exposure::from_physical_camera(**parameters),
         DistanceFog {
             color: Color::srgb(0.25, 0.25, 0.25),
-            falloff: FogFalloff::ExponentialSquared {
-                density: 0.12,
-            },
+            falloff: FogFalloff::ExponentialSquared { density: 0.05 },
             ..default()
         },
     ));
@@ -153,7 +127,6 @@ fn animate_light_direction(
 fn orbit(
     mut camera: Single<&mut Transform, With<Camera>>,
     mut camera_settings: ResMut<CameraSettings>,
-    time: Res<Time>,
 ) {
     camera_settings.alpha += ALPHA_DELTA;
     camera.translation.x = ORBIT_RADIUS * camera_settings.alpha.cos();

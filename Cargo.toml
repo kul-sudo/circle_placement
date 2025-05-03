@@ -4,4 +4,4 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-bevy = { version = "0.16.0", features = ["wayland"] }
+bevy = { version = "0.15.0", features = ["wayland"] }
